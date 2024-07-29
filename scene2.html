@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene 2: Efficiency and Engine Cylinders</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Scene 2: Efficiency and Engine Cylinders</h1>
+    </header>
+    <article>
+        <p>In this scene, we examine the relationship between engine cylinders and fuel efficiency.</p>
+    </article>
+    <nav>
+        <a href="scene1.html">Previous Scene</a> | <a href="scene3.html">Next Scene</a>
+    </nav>
+    <div id="chart"></div>
+    <script>
+        d3.csv("data/cars2017.csv").then(function(data) {
+            visualizeScene2(data);
+        });
+
+        function visualizeScene2(data) {
+            // Aggregate data by engine cylinders
+            let efficiencyByCylinders = d3.group(data, d => d.EngineCylinders);
+            let averages = Array.from(efficiencyByCylinders, ([key, values]) => ({
+                cylinders: key,
+                avgMPG: d3.mean(values, d => +d.AverageCityMPG)
+            })).sort((a, b) => d3.ascending(+a.cylinders, +b.cylinders));
+
+            // Set up SVG
+            const svg = d3.select('#chart').append('svg')
+                .attr('width', 800)
+                .attr('height', 400);
+
+            const margin = {top: 50, right: 20, bottom: 30, left: 80},
+                  width = +svg.attr('width') - margin.left - margin.right,
+                  height = +svg.attr('height') - margin.top - margin.bottom,
+                  g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // Define scales
+            const x = d3.scaleLinear().range([0, width]),
+                  y = d3.scaleLinear().range([height, 0]);
+
+            x.domain([0, d3.max(averages, d => +d.cylinders)]);
+            y.domain([0, d3.max(averages, d => d.avgMPG)]);
+
+            // Define the line
+            const line = d3.line()
+                .x(d => x(d.cylinders))
+                .y(d => y(d.avgMPG))
+                .curve(d3.curveMonotoneX);
+
+            // Add the line path
+            g.append("path")
+                .datum(averages)
+                .attr("fill", "none")
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("d", line);
+
+            // Add points for the scatter plot
+            g.selectAll(".point")
+              .data(averages)
+              .enter().append("circle")
+                .attr("class", "point")
+                .attr("cx", d => x(d.cylinders))
+                .attr("cy", d => y(d.avgMPG))
+                .attr("r", 5)
+                .attr("fill", "steelblue");
+
+            // Add the x-axis
+            g.append("g")
+                .attr("class", "axis axis--x")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .append("text")
+                .attr("fill", "#000")
+                .attr("x", width)
+                .attr("dy", "-0.5em")
+                .attr("text-anchor", "end")
+                .text("Engine Cylinders");
+
+            // Add the y-axis
+            const yAxis = g.append("g")
+                .attr("class", "axis axis--y")
+                .call(d3.axisLeft(y));
+
+            // Add Y-axis title
+            yAxis.append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -60)
+                .attr("x", -height / 2)
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .style("fill", "black")
+                .text("Average City MPG");
+
+            // Annotation Text Configuration
+            const annotationText = "Average city MPG decreases as the number of cylinders increases";
+            const textWidth = 500;
+            const textHeight = 20;
+
+            // Add Annotation Background Box
+            svg.append("rect")
+                .attr("x", (width / 2 + margin.left) - (textWidth / 2))
+                .attr("y", margin.top - 10 - textHeight)
+                .attr("width", textWidth)
+                .attr("height", textHeight)
+                .attr("fill", "lightgrey")
+                .attr("stroke", "black")
+                .attr("stroke-width", 1);
+
+            // Add annotation
+            svg.append("text")
+                .attr("x", width / 2 + margin.left)
+                .attr("y", margin.top - 10 - 5)
+                .attr("text-anchor", "middle")
+                .style("font-size", "14px")
+                .style("fill", "black")
+                .text(annotationText);
+        }
+    </script>
+    <footer>
+        <p>Project by Zhenbang Wu (zw12@illinois.edu).</p>
+    </footer>
+</body>
+</html>

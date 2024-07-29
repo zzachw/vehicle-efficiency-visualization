@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scene 3: Make Comparison</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Scene 3: Make Comparison</h1>
+    </header>
+    <article>
+        <p>This final scene compares different vehicle makes to showcase their fuel efficiency.
+          <strong>Hover over each bar to see the average number of cylinder for that make.</strong></p>
+    </article>
+    <nav>
+        <a href="scene2.html">Previous Scene</a> | <a href="index.html">Home</a>
+    </nav>
+    <div id="chart"></div>
+    <script>
+        d3.csv("data/cars2017.csv").then(function(data) {
+            visualizeScene3(data);
+        });
+
+        function visualizeScene3(data) {
+            // Aggregate data for all makes and sort by average city MPG
+            let efficiencyByMake = d3.rollups(data,
+                v => ({
+                    avgCityMPG: d3.mean(v, d => +d.AverageCityMPG),
+                    avgCylinders: d3.mean(v, d => +d.EngineCylinders)
+                }),
+                d => d.Make
+            ).sort((a, b) => d3.descending(a[1].avgCityMPG, b[1].avgCityMPG));
+
+            // SVG setup
+            const svg = d3.select('#chart').append('svg')
+                .attr('width', 800)
+                .attr('height', 500);
+            const margin = {top: 50, right: 20, bottom: 100, left: 80},
+                  width = svg.attr('width') - margin.left - margin.right,
+                  height = svg.attr('height') - margin.top - margin.bottom,
+                  g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // Scales
+            const x = d3.scaleBand()
+                .rangeRound([0, width])
+                .padding(0.1)
+                .domain(efficiencyByMake.map(d => d[0]));
+            const y = d3.scaleLinear()
+                .rangeRound([height, 0])
+                .domain([0, d3.max(efficiencyByMake, d => d[1].avgCityMPG)]);
+
+            // Axes
+            g.append("g")
+                .attr("class", "axis")
+                .attr("transform", `translate(0,${height})`)
+                .call(d3.axisBottom(x))
+                .selectAll("text")
+                .style("text-anchor", "end")
+                .attr("dx", "-.8em")
+                .attr("dy", ".15em")
+                .attr("transform", "rotate(-65)");
+
+            g.append("g")
+                .attr("class", "axis")
+                .call(d3.axisLeft(y))
+                .append("text")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -60)
+                .attr("x", -160)
+                .attr("dy", "1em")
+                .style("text-anchor", "middle")
+                .style("fill", "black")
+                .text("Average City MPG");
+
+            // Annotation Text Configuration
+            const mostEfficientMake = efficiencyByMake[0];
+            const annotationText = `Highest average city MPG is by ${mostEfficientMake[0]}: ${mostEfficientMake[1].avgCityMPG.toFixed(1)} MPG`;
+            const textWidth = 500;
+            const textHeight = 20;
+
+            // Add Annotation Background Box
+            svg.append("rect")
+                .attr("x", (width / 2 + margin.left) - (textWidth / 2))
+                .attr("y", margin.top - 10 - textHeight)
+                .attr("width", textWidth)
+                .attr("height", textHeight)
+                .attr("fill", "lightgrey")
+                .attr("stroke", "black")
+                .attr("stroke-width", 1);
+
+            // Add Annotation
+            svg.append("text")
+                .attr("x", width / 2 + margin.left)
+                .attr("y", margin.top - 10 - 5)
+                .attr("text-anchor", "middle")
+                .style("font-size", "14px")
+                .style("fill", "black")
+                .text(annotationText);
+
+            // Tooltip container
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("position", "absolute")
+                .style("visibility", "hidden")
+                .style("background-color", "lightyellow")
+                .style("border", "solid 1px black")
+                .style("padding", "5px");
+
+            // Bars with tooltip
+            g.selectAll(".bar")
+                .data(efficiencyByMake)
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d[0]))
+                .attr("y", d => y(d[1].avgCityMPG))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d[1].avgCityMPG))
+                .attr("fill", '#4CAF50')
+                .on("mouseover", function(event, d) {
+                    tooltip.style("visibility", "visible")
+                           .html(`Make: ${d[0]}<br>Avg Cylinders: ${d[1].avgCylinders.toFixed(1)}`)
+                           .style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mousemove", function(event) {
+                    tooltip.style("left", (event.pageX + 10) + "px")
+                           .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", function() {
+                    tooltip.style("visibility", "hidden");
+                });
+        }
+    </script>
+    <footer>
+        <p>Project by Zhenbang Wu (zw12@illinois.edu).</p>
+    </footer>
+</body>
+</html>
